@@ -9,26 +9,24 @@ from collections import Counter
 #=============================================================================
 # MAIN INPUT
 
-# diameter of radio bubble in light years (max = 500):
-EM_DIAMETER = 200
+# diameter of radio bubble in light years (Maximum = 500):
+EM_DIAMETER = 250
 
 # number of advanced mcs_civs from Drake's Equation:
-NUM_CIVS = 100000
+NUM_CIVS = 10000
+
 # number of cases to run:
 NUM_CASES = 1
 
 #==============================================================================
 
 
-# limit bubble size for better model resolution
-if EM_DIAMETER > 500:
-    EM_DIAMETER = 500
     
 # actual Milky Way Dimensions (light-years)
 DISC_RADIUS = 50000
 DISC_HEIGHT = 1000
 HT_SCALAR = 50 # ratio of disc radius to disc height
-DISC_VOL = 7853981633974.5 # cubic LY
+DISC_VOL = math.pi * DISC_RADIUS**2 * DISC_HEIGHT
 
 # scale disc to radio bubble for visual model
 em_vol = 4/3 * math.pi * (EM_DIAMETER/2)**3
@@ -110,11 +108,11 @@ def monte_carlo():
     mcs_ht = round(DISC_HEIGHT/mcs_cell_side)
     mcs_vol = mcs_side**2 * mcs_ht * mcs_cell_side**3
     vol_diff = mcs_vol / disc_vol
-    print("mcs vol / disc vol =", vol_diff)
+    print("mcs vol / disc vol = {}".format(vol_diff))
 
     # adjust number of civilizations for difference in volume
     num_civs = round(num_civs * vol_diff)
-    print("volume-adjusted number of civilizations = ", num_civs)
+    print("volume-adjusted number of civilizations = {}".format(num_civs))
 
     # reduce model size if >10M civilizations modeled
     if num_civs > 10000000:
@@ -123,19 +121,19 @@ def monte_carlo():
         mcs_ht = mcs_side
         num_civs = math.ceil(num_civs / 4)
         disc_vol = DISC_VOL / 4
-        print("vol-adjusted number of civilizations / 4 = ", num_civs)
+        print("vol-adjusted number of civilizations / 4 = {}".format(num_civs))
     
     # run MCS
     tot_undetected = 0
     for case in range(NUM_CASES):
-        print("running case", case + 1, "...")
+        print("running case {}".format(case + 1), "...")
         mcs_civs = []
         for i in repeat(None, num_civs):
             mcs_civs.append(civ_locations(mcs_side, mcs_ht))
         overlap_count = Counter(mcs_civs)
         overlap_rollup = Counter(overlap_count.values())
         num_undetected = overlap_rollup[1]
-        print("number cells with only one civ = ", num_undetected)
+        print("number cells with only one civ = {}".format(num_undetected))
         tot_undetected += num_undetected
         
     single_prob = 1 - (num_undetected / num_civs)
@@ -179,18 +177,25 @@ def main():
     c.create_text(0, 290, fill='white', font=('Helvetica', '11'),
                   text='DISPLAYING {:,} CIVILIZATIONS'.format(to_display))
 
+    # warn user if they are using a radio bubble diameter > 500 LY
+    if EM_DIAMETER > 500:
+        bubble_text = 'WARNING: Radio Bubble diameter exceeds 500 LY!'
+        bubble_fill = 'red'
+    else:
+        bubble_text = 'Diameter of radio bubbles = {} LY'.format(EM_DIAMETER)
+        bubble_fill = 'white'
+
     # display statistics
-    c.create_text(-455, -375, fill='white', anchor='w',
-                  text='Diameter of radio bubbles = %s LY' % (EM_DIAMETER))
+    c.create_text(-455, -375, fill=bubble_fill, anchor='w', text=bubble_text)
     c.create_text(-455, -350, fill='white', anchor='w',
                   text='Number of advanced civilizations = {:,}'
                   .format(NUM_CIVS))
     c.create_text(-455, -325, fill='white', anchor='w',
-                  text='Single case probability of detection = %.4f'
-                  % (single_prob))
+                  text='Single case probability of detection = {:.4f}'
+                  .format(single_prob))
     c.create_text(-455, -300, fill='white', anchor='w',
-                  text='Probability of detection for %s case(s) = %.4f'
-                  % (NUM_CASES, total_prob))
+                  text='Probability of detection for {} case(s) = {:.4f}'
+                  .format(NUM_CASES, total_prob))
     c.create_text(0, 325, fill='white',
                   text='SHOWING FINAL SIMULATION')
     c.create_text(0, 350, fill='red',
